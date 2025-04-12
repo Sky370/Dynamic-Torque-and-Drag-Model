@@ -78,13 +78,13 @@ def Friction(z, v, theta, omega, Forcing_F, Forcing_T, static_check_prev, consta
     if fric_mod.lower() == 'stribeck':      
         # Update static checks with relaxed threshold
         static_check_prev[(resultant_vel < epsilon)] = 0
-        static_check_prev[(Fd_resultant > Friction_limit)] = 1
-        # static_check_prev[resultant_vel >= epsilon] = 1 
+        # static_check_prev[(Fd_resultant > Friction_limit)] = 1
+        static_check_prev[resultant_vel >= epsilon] = 1 
 
-        # Friction_force = np.where(static_check_prev == 0, Friction_force_static, -coloumb_r * comp_a)
-        # Friction_torque = np.where(static_check_prev == 0, Friction_torque_static*radius , -coloumb_r * comp_t * radius)
-        Friction_force = np.where(static_check_prev == 0, Fd_a, -coloumb_r * comp_a)
-        Friction_torque = np.where(static_check_prev == 0, Fd_t*radius , -coloumb_r * comp_t * radius)
+        Friction_force = np.where(static_check_prev == 0, Friction_force_static, -coloumb_r * comp_a)
+        Friction_torque = np.where(static_check_prev == 0, Friction_torque_static*radius , -coloumb_r * comp_t * radius)
+        # Friction_force = np.where(static_check_prev == 0, Fd_a, -coloumb_r * comp_a)
+        # Friction_torque = np.where(static_check_prev == 0, Fd_t*radius , -coloumb_r * comp_t * radius)
         
     elif fric_mod.lower() == 'coulomb':        
         # Update static check: 0 = static, 1 = dynamic

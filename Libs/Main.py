@@ -1,4 +1,4 @@
-from Libs.constants_IMPERIAL import *
+from Libs.constants_SI import *
 from Libs.solver import Main_Func
 # from Libs.TD_velocity import topdrive_new
 # from Libs.visualize import visualize_vel
@@ -88,8 +88,8 @@ def simulation(depth, fric_mod):
     plt.show()
 
     plt.figure(figsize=(10, 6))
-    plt.plot(sol.t, -V_rk45[-1], label='Bit Axial Velocity')
-    plt.plot(sol.t, -V_rk45[0], '--', label='Topdrive Axial Velocity')
+    plt.plot(sol.t, -V_rk45[-1]/0.3048, label='Bit Axial Velocity')
+    plt.plot(sol.t, -V_rk45[0]/0.3048, '--', label='Topdrive Axial Velocity')
     # plt.plot(sol_rk45.t, sol_rk45.y[0, :], label='RK45 (Explicit)')
     # plt.plot(sol_bdf.t, sol_bdf.y[0, :], '--', label='BDF (Implicit)')
     plt.xlabel('Time (s)')
@@ -125,7 +125,7 @@ def simulation(depth, fric_mod):
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
     # Plot in klbf (original unit)
-    ax1.plot(sol.t, -clc.ka[0] * net_displ_init, 'b', label='Hookload (lbf)')
+    ax1.plot(sol.t, -clc.ka[0] * net_displ_init/4.44822, 'b', label='Hookload (lbf)')
     # ax1.plot(sol_bdf.t, -ForceS_bdf / 1000, 'g--', label='BDF (klbf)')
     ax1.set_xlabel('Time (s)')
     ax1.set_ylabel('Surface Load (lbf)', color='k')

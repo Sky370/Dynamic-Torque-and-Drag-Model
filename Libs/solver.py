@@ -48,11 +48,8 @@ def Main_Func(t, x, constants, p, fric_mod):
     v = x[1::4]
     theta = x[2::4] - mm_omega * t
     omega = x[3::4] - mm_omega
-    # theta = np.zeros(clc.noe)
-    # omega = np.zeros(clc.noe)
     doc = bit_rock(z[-1], theta[-1], p, clc)
 
-    # z[0] = z_top_drive
     v[0] = ROP_top_drive
     theta[0] = RPM_top_drive
 
@@ -85,8 +82,9 @@ def Main_Func(t, x, constants, p, fric_mod):
     Ct = clc.global_ct_matrix
     # C = np.ones(clc.noe)*200
     R_EQ = 0.5*clc.DIA_EQ
-    F_g = clc.bw_pipe*clc.global_length_array*np.cos(clc.inc_rad[1:])
-    F_v = clc.F_visc1*20
+    # F_g = clc.bw_pipe*clc.global_length_array*np.cos(clc.inc_rad[1:])
+    F_g = 0
+    F_v = clc.F_visc*20
     C_v = F_v*R_EQ
 
     dx[0::4] = np.array(v)

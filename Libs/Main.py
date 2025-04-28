@@ -1,15 +1,12 @@
 from Libs.constants_SI import *
 from Libs.solver import Main_Func
-# from Libs.TD_velocity import topdrive_new
-# from Libs.visualize import visualize_vel
-# from Libs.Init_xls import outputFolderPath
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
 def simulation(depth, fric_mod):
     clc = Calculations(depth)
     initial_state = np.zeros(4*clc.noe)
-    initial_state[0::4] = clc.initial_displacement
+    # initial_state[0::4] = clc.initial_displacement
     # initial_state[0::2] = clc.new_us
     
     # # Preallocate arrays (replace dictionary appends)
@@ -64,7 +61,7 @@ def simulation(depth, fric_mod):
 
     # Calculate forces for all nodes over time
     print(sum(clc.bw_pipe * clc.global_length_array * np.cos(clc.inc_rad[1:])))
-    fff = -clc.ka[0] * net_displ_init #+ sum(clc.bw_pipe * clc.global_length_array * np.cos(clc.inc_rad))      
+    fff = -clc.ka[0] * net_displ_init + sum(clc.bw_pipe * clc.global_length_array * np.cos(clc.inc_rad[1:])) + clc.TP_w      
       # + np.cumsum(np.array(P['new_force']))[-1]
       #  - clc.global_ca_matrix[0, 0] * V_rk45[0]          
 
@@ -88,8 +85,8 @@ def simulation(depth, fric_mod):
     plt.show()
 
     plt.figure(figsize=(10, 6))
-    plt.plot(sol.t, -V_rk45[-1]/0.3048, label='Bit Axial Velocity')
-    plt.plot(sol.t, -V_rk45[0]/0.3048, '--', label='Topdrive Axial Velocity')
+    plt.plot(sol.t, m2ft(V_rk45[-1]), label='Bit Axial Velocity')
+    plt.plot(sol.t, m2ft(V_rk45[0]), '--', label='Topdrive Axial Velocity')
     # plt.plot(sol_rk45.t, sol_rk45.y[0, :], label='RK45 (Explicit)')
     # plt.plot(sol_bdf.t, sol_bdf.y[0, :], '--', label='BDF (Implicit)')
     plt.xlabel('Time (s)')
@@ -100,8 +97,8 @@ def simulation(depth, fric_mod):
     plt.show()
     
     plt.figure(figsize=(10, 6))
-    plt.plot(sol.t, -X_rk45[-1], label='Bit Axial Displacement')
-    plt.plot(sol.t, -X_rk45[0], '--', label='Topdrive Axial Displacement')
+    plt.plot(sol.t, m2ft(X_rk45[-1]), label='Bit Axial Displacement')
+    plt.plot(sol.t, m2ft(X_rk45[0]), '--', label='Topdrive Axial Displacement')
     # plt.plot(sol_rk45.t, sol_rk45.y[0, :], label='RK45 (Explicit)')
     # plt.plot(sol_bdf.t, sol_bdf.y[0, :], '--', label='BDF (Implicit)')
     plt.xlabel('Time (s)')
@@ -119,13 +116,10 @@ def simulation(depth, fric_mod):
     # ForceS_bdf = clc.global_ka_matrix @ sol_bdf.y[:N, :]
     # ForceS_bdf = ForceS_bdf[-1, :]
 
-    # Unit conversions
-    N2lbf = lambda N: N / 4.44822
-
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
     # Plot in klbf (original unit)
-    ax1.plot(sol.t, -clc.ka[0] * net_displ_init/4.44822, 'b', label='Hookload (lbf)')
+    ax1.plot(sol.t, N2lbf(fff), 'b', label='Hookload (lbf)')
     # ax1.plot(sol_bdf.t, -ForceS_bdf / 1000, 'g--', label='BDF (klbf)')
     ax1.set_xlabel('Time (s)')
     ax1.set_ylabel('Surface Load (lbf)', color='k')
@@ -133,7 +127,7 @@ def simulation(depth, fric_mod):
 
     # Add kN axis
     ax2 = ax1.twinx()
-    ax2.plot(sol.t, -clc.ka[0] * net_displ_init*4.44822, 'r', linestyle=':', label='Hookload (N)')
+    ax2.plot(sol.t, fff, 'r', linestyle=':', label='Hookload (N)')
     # ax2.plot(sol_bdf.t, lbf2N(-ForceS_bdf / 1000), 'm--', label='BDF (kN)')
     ax2.set_ylabel('Surface Load (N)', color='k')
     ax2.tick_params(axis='y', labelcolor='k')

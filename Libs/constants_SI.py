@@ -12,19 +12,21 @@ class Calculations:
         self.g = ft2m(32.1740)  # ft/s² to m/s²
         self.bit_depth = ft2m(depth) # ft to m
         self.elem_length = ft2m(float(df_ADV[df_ADV["Parameter"] == "Element Length"]["Value"]))        # ft to m
-        self.mud_density_ppg = ppg2kgm(float(df_WELL[df_WELL["Parameter"] == "Mud Density"]["Value"]))  # ppg to kg/m3
+        self.mud_density = ppg2kgm(float(df_WELL[df_WELL["Parameter"] == "Mud Density"]["Value"]))      # ppg to kg/m3
         self.pipe_density = ppg2kgm(float(df_WELL[df_WELL["Parameter"] == "Steel Density"]["Value"]))   # ppg to kg/m3
-        self.visc_p = cp2Pas(float(df_WELL[df_WELL["Parameter"] == "Plastic Viscosity"]["Value"]))   # (lbf/ft^2).s to Pa.s 
-        self.tao_y = psi2Pa(float(df_WELL[df_WELL["Parameter"] == "Yield Point"]["Value"]))             # lbf/100ft2 to Pa
-        self.bf = float((1-self.mud_density_ppg/self.pipe_density))
+        self.visc_p = cp2Pas(float(df_WELL[df_WELL["Parameter"] == "Plastic Viscosity"]["Value"]))      # cP to Pa.s 
+        self.tao_y = (float(df_WELL[df_WELL["Parameter"] == "Yield Point"]["Value"]))                   # Pa
+        self.m = (float(df_WELL[df_WELL["Parameter"] == "m"]["Value"]))                                 
+        self.bf = float((1-self.mud_density/self.pipe_density))
         self.mu_s = float(df_WELL[df_WELL["Parameter"] == "Static Friction Factor"]["Value"])           # Static Fric. 
         self.mu_d = float(df_WELL[df_WELL["Parameter"] == "Dynamic Friction Factor"]["Value"])          # Dynamic Fric.
-        self.E = psf2Pa(float(df_ADV[df_ADV["Parameter"] == "Young Modulus"]["Value"]))                 # Young Modulus, lbf/ft2 to Pa
-        self.G = psf2Pa(float(df_ADV[df_ADV["Parameter"] == "Shear Modulus"]["Value"]))                 # Shear Modulus, lbf/ft2 to Pa
+        self.E = (float(df_ADV[df_ADV["Parameter"] == "Young Modulus"]["Value"]))                       # Pa
+        self.G = (float(df_ADV[df_ADV["Parameter"] == "Shear Modulus"]["Value"]))                       # Pa
         self.ccs = float(df_ADV[df_ADV["Parameter"] == "CCS"]["Value"])                                 # ksi
         self.v_cs = float(df_WELL[df_WELL["Parameter"] == "Stribeck Critical Velocity"]["Value"])       # m/s
         # self.CT_BOREHOLE = float(df_WELL[df_WELL["Parameter"] == "Torsional Drag Coefficient"]["Value"])    # N sec/m
-        self.Q = float(df_PUMP[df_PUMP["Parameter"] == "Flow Rate"]["Value"])  # GPM
+        self.Q = GPM2ms(float(df_PUMP[df_PUMP["Parameter"] == "Flow Rate"]["Value"]))                   # GPM to m^3/s
+        self.TP_w = lbf2N(float(df_TOP[df_TOP["Parameter"] == "Top Drive Weight"]["Value"]))            # lbf to N
 
         # Time intervals definition
         self.a1 = float(df_TOP[df_TOP["Parameter"] == "a1"]["Value"])
@@ -33,6 +35,7 @@ class Calculations:
         self.a4 = float(df_TOP[df_TOP["Parameter"] == "a4"]["Value"])
         self.a5 = float(df_TOP[df_TOP["Parameter"] == "a5"]["Value"])
         self.a6 = float(df_TOP[df_TOP["Parameter"] == "a6"]["Value"])
+        self.a7 = float(df_TOP[df_TOP["Parameter"] == "a7"]["Value"])
         self.b1 = float(df_TOP[df_TOP["Parameter"] == "b1"]["Value"])
         self.b2 = float(df_TOP[df_TOP["Parameter"] == "b2"]["Value"])
         self.b3 = float(df_TOP[df_TOP["Parameter"] == "b3"]["Value"])
@@ -41,10 +44,10 @@ class Calculations:
         self.b6 = float(df_TOP[df_TOP["Parameter"] == "b6"]["Value"])
         
         # Velocity definition
-        self.v1 = ft_min2ms(float(df_TOP[df_TOP["Parameter"] == "Top Drive Axial Velocity Magnitude 1 (ft/min)"]["Value"]))     # ft/min to m/s
-        self.v2 = ft_min2ms(float(df_TOP[df_TOP["Parameter"] == "Top Drive Axial Velocity Magnitude 2 (ft/min)"]["Value"]))     # ft/min to m/s
-        self.rpm1 = rpm2rad_s(float(df_TOP[df_TOP["Parameter"] == "Top Drive RPM Magnitude 1 (RPM)"]["Value"]))                 # rev/min to rad/s
-        self.rpm2 = rpm2rad_s(float(df_TOP[df_TOP["Parameter"] == "Top Drive RPM Magnitude 2 (RPM)"]["Value"]))                 # rev/min to rad/s
+        self.v1 = ft_min2ms(float(df_TOP[df_TOP["Parameter"] == "Top Drive ROP 1"]["Value"]))       # ft/min to m/s
+        self.v2 = ft_min2ms(float(df_TOP[df_TOP["Parameter"] == "Top Drive ROP 2"]["Value"]))       # ft/min to m/s
+        self.rpm1 = rpm2rad_s(float(df_TOP[df_TOP["Parameter"] == "Top Drive RPM 1"]["Value"]))     # rev/min to rad/s
+        self.rpm2 = rpm2rad_s(float(df_TOP[df_TOP["Parameter"] == "Top Drive RPM 2"]["Value"]))     # rev/min to rad/s
 
         # Time array
         self.time_val = float(df_ADV[df_ADV["Parameter"] == "Run Time"]["Value"])   # seconds
@@ -64,7 +67,7 @@ class Calculations:
         self.DP_MASS_ARRAY = np.ones(self.N_DP) * df_BHA["Mass (lbs)"].iloc[0]  
         self.L_DP_ARRAY = np.ones(self.N_DP) * self.L_DP
         self.DP_TYPES = np.array(["DP"]*self.N_DP)
-        self.TJ_OD = df_BHA["OD Tool Joint (in)"].iloc[0]   # Tool Joint OD, in
+        self.TJ_OD = in2m(df_BHA["OD Tool Joint (in)"].iloc[0])   # Tool Joint OD, m
 
         # BHA:
         self.BHA_TYPES = np.array(np.repeat(df_BHA["BHA Type"], df_BHA["Number of Items"]))
@@ -77,7 +80,7 @@ class Calculations:
         self.HOLE_OD = in2m(df_ADV[df_ADV["Parameter"] == "Hole Diameter"]["Value"].iloc[0])    # inch to m
         self.HOLE_DEPTH = ft2m(df_ADV[df_ADV["Parameter"] == "Hole Depth"]["Value"].iloc[0])    # ft to m
         self.noe = self.N_DP + len(self.BHA_OD)
-        self.HOLE_ARRAY = np.ones(self.noe)*self.HOLE_OD                                        # inch to m
+        self.HOLE_ARRAY = np.ones(self.noe)*self.HOLE_OD                                        
         self.HOLE_LENGTH = self.HOLE_DEPTH - self.bit_depth
         self.N_HOLE, self.L_HOLE = nearestLength(self.HOLE_LENGTH, self.elem_length)
         self.N_HOLE = round(self.N_HOLE)
@@ -113,27 +116,11 @@ class Calculations:
         self.ka = self.E * self.A_cross / self.global_length_array                                              # Axial stiffness 
         self.kt = self.G * self.J_polar / self.global_length_array                                              # Torsional stiffness
 
-        # # Parallel stifness technique
-        # hwdp_mask = self.global_types == "HWDP"            # Mask for HWDP components
-        # collar_mask = self.global_types == "Collar"        # Mask for Collar components
-
-        # if np.any(hwdp_mask):
-        #     hwdp_ka = 1 / np.sum(1 / self.ka[hwdp_mask])        # Combined axial stiffness
-        #     hwdp_kt = 1 / np.sum(1 / self.kt[hwdp_mask])        # Combined torsional stiffness
-        #     self.ka[hwdp_mask] = hwdp_ka * len(self.BHA_TYPES[self.BHA_TYPES == "HWDP"]) 
-        #     self.kt[hwdp_mask] = hwdp_kt * len(self.BHA_TYPES[self.BHA_TYPES == "HWDP"]) 
-
-        # if np.any(collar_mask):
-        #     collar_ka = 1 / np.sum(1 / self.ka[collar_mask])    # Combined axial stiffness
-        #     collar_kt = 1 / np.sum(1 / self.kt[collar_mask])    # Combined torsional stiffness
-        #     self.ka[collar_mask] = collar_ka * len(self.BHA_TYPES[self.BHA_TYPES == "Collar"]) 
-        #     self.kt[collar_mask] = collar_kt * len(self.BHA_TYPES[self.BHA_TYPES == "Collar"]) 
-
         # Build and Turn rates calculation
         self.bw_pipe = self.bf*self.global_mass_array/self.global_length_array * self.g
         self.MD = np.insert(np.cumsum(self.global_length_array), 0, 0)
         # self.MD = np.cumsum(self.global_length_array)
-        self.inc, self.azi, self.K = survey_mod_SI(df_SRV, self.MD, self.bf, self.global_mass_array, self.g)
+        self.inc, self.azi, self.K = survey_mod_SI(df_SRV, self.MD)
         self.inc_rad = np.round(np.deg2rad(self.inc), 9)
         self.azi_rad = np.round(np.deg2rad(self.azi), 9)
 
@@ -191,7 +178,7 @@ class Calculations:
         # self.b_z = np.sin(self.inc_rad[:-1])*np.sin(self.inc_rad[1:])*np.sin(self.azi_rad[1:] - self.azi_rad[:-1])/np.sin(self.betta)
         # self.b_z = np.nan_to_num(self.b_z)
 
-        self.DIA_EQ = (27*self.global_od_array + 3*in2m(self.TJ_OD)) / 30     # in to m
+        self.DIA_EQ = (27*self.global_od_array + 3*self.TJ_OD) / 30     # in to m
         AXIAL_VEL_MULTIPLIER = self.global_od_array**2 / (self.HOLE_OD**2 - self.global_od_array**2)    # Accounting for mud velocity drag effects along axial direction
         DOC_SS = ROP_SS / RPM_SS   # m/rev
         # units of CCS of formation in ksi
@@ -201,12 +188,6 @@ class Calculations:
         # coefficient of friction for different rock-strength
         self.K_WOB = 0.8 * (self.ccs*0.5) * lbf2N(WOB_SS) / DOC_SS * (m2in(self.HOLE_OD) / 12.25)    # units of k_WOB are in (N-rev)/(m)
         self.K_TQ = MU_ROCK / 3 * (self.K_WOB / 0.8) * self.HOLE_OD                            # units of k_TQ are in (N-rev)
-
-        # self.CA_BOREHOLE = self.CT_BOREHOLE * (
-        # (ROP_SS * AXIAL_VEL_MULTIPLIER) / (RPM_SS) / (self.DIA_EQ * np.pi)
-        # )
-        # self.global_ct_array = np.where(self.global_length_array == 0, 0, self.CT_BOREHOLE / self.global_length_array)
-        # self.global_ca_array = np.where(self.global_length_array == 0, 0, self.CA_BOREHOLE / self.global_length_array)
         
         # Sparse Matrices       
         self.global_ka_matrix = sps.diags(
@@ -225,14 +206,14 @@ class Calculations:
         # self.K_inv = sps.diags(1 / self.global_ka_matrix.diags(), format='csr')
         self.alpha_ax = 2 * ratio_p /np.sqrt(self.ka/ self.global_mass_array)                                       # Natural frequency for axial motion
         self.alpha_tor = 2 * ratio_p /np.sqrt(self.kt / self.global_mass_array)                                      # Natural frequency for torsional motion
-        self.alpha_ax = 0.15
+        self.alpha_ax = 0.1
         # # Calculate for first and third modes
         self.global_ca_rayleigh = self.global_ka_matrix.dot(self.alpha_ax)  # + betta*sps.diags(self.global_mass_array)  # Now includes mass-proportional term
         self.ca_visc = self.visc_p* 2*np.pi*self.global_length_array*(self.global_od_array/self.D_h)
         self.global_ca_visc = sps.diags(self.ca_visc, format='csr')
         self.global_ca_visc = 0
         self.global_ca_matrix = self.global_ca_rayleigh     # Rayleigh axial viscous damping coefficient (assuming Betta is zero)
-        self.global_ct_matrix = self.global_kt_matrix.dot(self.alpha_ax)      # Rayleigh torsional viscous damping coefficient (assuming Betta is zero)
+        self.global_ct_matrix = self.global_kt_matrix.dot(self.alpha_tor)      # Rayleigh torsional viscous damping coefficient (assuming Betta is zero)
         self.global_mass_inv_matrix = sps.diags(1 / self.global_mass_array, format='csr')
         self.global_inertia_inv_matrix = sps.diags(1 / self.J_m, format='csr')
         self.global_mass_inv_ka_matrix = self.global_mass_inv_matrix @ self.global_ka_matrix        # Sparse Matrix
@@ -283,30 +264,8 @@ class Calculations:
         new_u = np.cumsum(self.f[:-1]/self.ka[:-1])
         self.new_us = np.cumsum(self.f/self.ka)
         self.initial_displacement = np.insert(new_u, 0, 0)
-
+    
     def _compute_viscous_forces(self):
-        dP_dL_Shear_o , dP_dL_Shear_i, v_o, v_i = pres_calc(
-        Q=self.Q,
-        rho=ppg2lbft3(self.mud_density_ppg), 
-        m = 1,
-        K=self.visc_p, 
-        tao=self.tao_y,
-        D_o=self.global_od_array*12, 
-        D_i=self.global_id_array*12,
-        D_w=self.HOLE_ARRAY*12,
-        )
-        # dP_dL_Shear_i , dP_dL_Shear_o, v_i, v_o = p_drop(
-        # Q=self.Q,
-        # rho=self.mud_density_ppg, 
-        # mu_p=self.visc_p,
-        # tao=self.tao_y,
-        # D_o=self.global_od_array*12, 
-        # D_i=self.global_id_array*12,
-        # D_w=self.HOLE_ARRAY*12,
-        # )
-        dP_dL_o = ppg2lbft3(self.mud_density_ppg)*self.g*np.cos(self.inc_rad[1:]) + dP_dL_Shear_o
-        dP_dL_i = ppg2lbft3(self.mud_density_ppg)*self.g*np.cos(self.inc_rad[1:]) - dP_dL_Shear_i
-        # dP_dL_i[:-4] = 0
-        self.F_visc = self.global_length_array*(-dP_dL_o*self.A_h + dP_dL_i*self.A_i)
-        self.F_visc1 = self.global_length_array*(dP_dL_Shear_o*self.A_h - dP_dL_Shear_i*self.A_i)
-        return self.F_visc1
+        dPdL_Shear_o , dPdL_Shear_i = pres_calc(Q=self.Q, m = self.m, K=self.visc_p, tao=self.tao_y, rho=self.mud_density, clc=self)
+        self.F_visc = self.global_length_array*(dPdL_Shear_o*self.A_h - dPdL_Shear_i*self.A_i)
+        return self.F_visc

@@ -6,7 +6,7 @@ import os
 
 THIS_FOLDER = os.path.dirname(os.path.abspath("__file__"))
 outputFolderPath = os.path.join(THIS_FOLDER, 'Output')
-input_excel_path = os.path.join(THIS_FOLDER, 'Input/NewData_Zahra_3D.xlsx')
+input_excel_path = os.path.join(THIS_FOLDER, 'Input/Shell_3D.xlsx')
 
 # Import the data
 sheet_names = ["PUMP", "BHA", "ADVANCED", "SURVEY", "TOP_DRIVE", "Borehole_Properties", "steady_state_inputs"]
@@ -51,11 +51,11 @@ def nearestLength(a, b):
     else:
         return int(floor_parts), floor_length
 
-def survey_mod_SI(df, MD, bf, mass, g):
+def survey_mod_SI(df, MD):
     x = ft2m(np.array(df["MD"].values))
     y = np.array(df["INC"].values)
     z = np.array(df["AZI"].values)
-    dls = m2ft(np.array(df["DLS"].values))
+    dls = np.array(df["DLS"].values)
     y_interp = interp1d(x, y, kind='linear', fill_value="extrapolate")
     z_interp = interp1d(x, z, kind='linear', fill_value="extrapolate")
     k_interp = interp1d(x, dls, kind='linear', fill_value="extrapolate")
@@ -66,7 +66,7 @@ def survey_mod_SI(df, MD, bf, mass, g):
     # Normal_force = bf * mass * g * np.sin(np.deg2rad((theta_inclination[:-1] + theta_inclination[1:])/2))
     return theta_inclination, theta_azimuth, DLS
 
-def survey_mod_IMPERIAL(df, MD, bf, mass, g):
+def survey_mod_IMPERIAL(df, MD):
     x = (np.array(df["MD"].values))
     y = np.array(df["INC"].values)
     z = np.array(df["AZI"].values)
@@ -82,29 +82,19 @@ def survey_mod_IMPERIAL(df, MD, bf, mass, g):
     return theta_inclination, theta_azimuth, DLS
 
 # New Pressure Loss Calculation (more accurate)
-def pres_calc(rho, m, K, tao, Q, D_o, D_i, D_w):
-    # Conversion to SI
-    D_i_new, D_o_new, D_w_new = D_i*0.0254, D_o*0.0254, D_w*0.0254  # in to m
-    Q_new = Q / (264.172 * 60)                                      # GPM to m3/s
-    rho_new = rho * 119.8264273167                                  # lbm/ft^3 to kg/m^3
-    tao_yield = tao * 0.4788                                        # psi to Pa
-    K_new = K / 1000                                          # cp to Pa.s
+def pres_calc(rho, m, K, tao, Q, clc):
 
-    # Calculation part
-    D_hy = D_w_new - D_o_new                            # Hydraulic diameter
-    Area_an = np.pi / 4 * (D_w_new**2 - D_o_new**2)     # Annular area
-    Area_in = np.pi / 4 * D_i_new**2                    # Inner area
-    v_in = Q_new / Area_in
-    v_an = Q_new / Area_an
+    v_in = Q / clc.A_i
+    v_an = Q / clc.A_h
 
     def shear_stress_iteration(v, D, is_annular=True):
         # Iterative calculation for shear stress
-        tao_initial = tao_yield + K_new * ((12 if is_annular else 8) * v / D)**m
+        tao_initial = tao + K * ((12 if is_annular else 8) * v / D)**m
         tao_new = np.copy(tao_initial)
         tolerance = np.ones_like(tao_initial)
 
         while np.any(tolerance > 1e-4):
-            x = tao_yield / tao_initial
+            x = tao / tao_initial
             if is_annular:
                 C_c = (1-x)*((m*x/(1+m))+1)
                 D_e = 3*m/(2*m+1)*C_c*D
@@ -113,15 +103,15 @@ def pres_calc(rho, m, K, tao, Q, D_o, D_i, D_w):
                 D_e = 4*m/(3*m+1)*C_c*D
 
             shear_rate = (12 if is_annular else 8) * v / D_e
-            tao_new = tao_yield + K_new * shear_rate**m
+            tao_new = tao + K * shear_rate**m
             tolerance = np.abs(tao_new - tao_initial)
             tao_initial = np.copy(tao_new)
 
         return tao_new
 
     # Iteration for shear stress in annulus and inner sections
-    tao_new_an = shear_stress_iteration(v_an, D_hy, is_annular=True)
-    tao_new_in = shear_stress_iteration(v_in, D_i_new, is_annular=False)
+    tao_new_an = shear_stress_iteration(v_an, clc.D_h, is_annular=True)
+    tao_new_in = shear_stress_iteration(v_in, clc.global_id_array, is_annular=False)
 
     # Reynolds number and friction factor calculations
     def calculate_friction_factor(N_RE, N, is_annular=True):
@@ -141,19 +131,19 @@ def pres_calc(rho, m, K, tao, Q, D_o, D_i, D_w):
 
         return fric_f
 
-    N_RE_an = 12 * rho_new * v_an**2 / tao_new_an
-    N_RE_in = 8 * rho_new * v_in**2 / tao_new_in
-    N_an = np.log(tao_new_an) / np.log(12 * v_an / D_hy)
-    N_in = np.log(tao_new_in) / np.log(8 * v_in / D_i_new)
+    N_RE_an = 12 * rho * v_an**2 / tao_new_an
+    N_RE_in = 8 * rho * v_in**2 / tao_new_in
+    N_an = np.log(tao_new_an) / np.log(12 * v_an / clc.D_h)
+    N_in = np.log(tao_new_in) / np.log(8 * v_in / clc.global_id_array)
 
     fric_f_an = calculate_friction_factor(N_RE_an, N_an, is_annular=True)
     fric_f_in = calculate_friction_factor(N_RE_in, N_in, is_annular=False)
 
     # Pressure gradient calculation
-    dPdL_an = 2 * fric_f_an * rho_new * v_an**2 / D_hy
-    dPdL_in = 2 * fric_f_in * rho_new * v_in**2 / D_i_new
+    dPdL_an = 2 * fric_f_an * rho * v_an**2 / clc.D_h
+    dPdL_in = 2 * fric_f_in * rho * v_in**2 / clc.global_id_array
 
-    return dPdL_an / 22620.40367, dPdL_in / 22620.40367, v_an * 3.28084, v_in * 3.28084 #, tao_new_an / 0.4788 , tao_new_in / 0.4788
+    return dPdL_an, dPdL_in #, tao_new_an / 0.4788 , tao_new_in / 0.4788
 
 def p_drop(rho, mu_p, tao, Q, D_o, D_i, D_w):
     """Corrected pressure drop calculation with proper units"""
@@ -242,14 +232,18 @@ def p_drop(rho, mu_p, tao, Q, D_o, D_i, D_w):
 #                 # = 10/(225*4.87) + (20*153.8)/(1000*4.87²)
 #                 # = 0.0091 + 0.129 = 0.138 psi/ft
 
+
 # Unit conversion [imperial-metric]
+
 ft2m = lambda ft: ft * 0.3048
 in2m = lambda inch: inch * 0.0254
 ft_min2ms = lambda f: f * 0.3048 / 60
 ft_hr2ms = lambda f: f * 0.3048 / 3600
 ppg2kgm = lambda rho: rho * 1.1983e+2
 ppg2lbft3 = lambda ppg: ppg*7.4805e+0
-psi2Pa = lambda psi: psi * 0.4788
+psi2Pa = lambda psi: psi * 6894.76
+psi2psf = lambda psi: psi * 144
+pa2psi = lambda psi: psi / 6894.76
 psf2Pa = lambda psf: psf * 47.880208
 cp2Pas = lambda viscosity: viscosity/1000
 cp2lbfft2 = lambda cp: cp*2.0885e-5
@@ -258,8 +252,8 @@ GPM2ms = lambda flowrate: flowrate * 6.309e-5
 lbs2kg = lambda lbs: lbs * 4.536e-1
 lbf2N = lambda lbf: lbf * 4.4482e+0
 rpm2rad_s = lambda rpm: rpm * 2*np.pi/60
-
 # Unit conversion [metric-imperial]
 m2ft = lambda m: m / 0.3048
 m2in = lambda m: m / 0.0254
 N2lbf = lambda lbf: lbf / 4.44822
+

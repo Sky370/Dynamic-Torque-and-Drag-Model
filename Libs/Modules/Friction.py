@@ -50,22 +50,22 @@ def Friction(z, v, theta, omega, Forcing_F, Forcing_T, static_check_prev, consta
     mu_dynamic = clc.mu_d
     # motor_elem = p[MOTOR_INDEX]
     
-    radius = 0.5 * dia_pipe_equiv      
+    radius = 0.5 * dia_pipe_equiv      # Radius in inches
     epsilon = 1e-6                     # Small threshold for zero velocity detection
     Friction_limit = mu_static * Normal_force
     Force_dynamic = mu_dynamic * Normal_force
     v_tan = radius * omega
-    resultant_vel = np.abs(np.sqrt(v**2 + v_tan**2)) 
+    resultant_vel = np.abs(np.sqrt(v**2 + v_tan**2)) + 1e-12  # Avoid division by zero
 
     mu_effective = mu_dynamic + (mu_static - mu_dynamic) * np.exp(-resultant_vel / clc.v_cs)
     coloumb_r = np.where(mu_effective * Normal_force < 1e-10, 0, mu_effective * Normal_force)
 
     # Calculating forces
-    F_g = clc.bw_pipe*clc.global_length_array*np.cos(clc.inc_rad[1:])
-    F_v = clc.F_visc1*20
-    C_v = F_v*radius
+    # F_g = clc.bw_pipe*clc.global_length_array*np.cos(clc.inc_rad[1:])
+    F_g = 0
+    F_v = clc.F_visc*20
     Fd_a = KA_top_s.dot(z) + ca_array * v - Forcing_F - F_g - F_v
-    Fd_t = KT_top_s.dot(theta)/radius + ct_array*omega*radius - Forcing_T/radius #- C_v
+    Fd_t = KT_top_s.dot(theta)/radius + ct_array*omega*radius - Forcing_T/radius
     Fd_resultant = np.sqrt(Fd_a**2 + Fd_t**2)
 
     comp_a = np.divide(v, resultant_vel, out=np.zeros_like(v), where=(resultant_vel!=0))
@@ -78,13 +78,11 @@ def Friction(z, v, theta, omega, Forcing_F, Forcing_T, static_check_prev, consta
     if fric_mod.lower() == 'stribeck':      
         # Update static checks with relaxed threshold
         static_check_prev[(resultant_vel < epsilon)] = 0
-        # static_check_prev[(Fd_resultant > Friction_limit)] = 1
-        static_check_prev[resultant_vel >= epsilon] = 1 
-
+        static_check_prev[(resultant_vel > epsilon)] = 1
+        
+        # Apply friction forces
         Friction_force = np.where(static_check_prev == 0, Friction_force_static, -coloumb_r * comp_a)
-        Friction_torque = np.where(static_check_prev == 0, Friction_torque_static*radius , -coloumb_r * comp_t * radius)
-        # Friction_force = np.where(static_check_prev == 0, Fd_a, -coloumb_r * comp_a)
-        # Friction_torque = np.where(static_check_prev == 0, Fd_t*radius , -coloumb_r * comp_t * radius)
+        Friction_torque = np.where(static_check_prev == 0, Friction_torque_static , -coloumb_r * comp_t * radius)
         
     elif fric_mod.lower() == 'coulomb':        
         # Update static check: 0 = static, 1 = dynamic
@@ -92,8 +90,11 @@ def Friction(z, v, theta, omega, Forcing_F, Forcing_T, static_check_prev, consta
         static_check_prev[resultant_vel >= epsilon] = 1 
         # static_check_prev[Fd_resultant > Friction_limit] = 1 
         
+        # Combine states
+        # Friction_force = np.where(static_check_prev == 0, -Friction_force_static, Force_dynamic* comp_a)
+        # Friction_torque = np.where(static_check_prev == 0, -Friction_torque_static*comp_t, Force_dynamic * comp_t * radius)
         Friction_force = np.where(static_check_prev == 0, Friction_force_static, -Force_dynamic * comp_a)
-        Friction_torque = np.where(static_check_prev == 0, Friction_torque_static*radius , -Force_dynamic * comp_t * radius)
+        Friction_torque = np.where(static_check_prev == 0, Friction_torque_static , -Force_dynamic * comp_t * radius)
     else:
         raise ValueError("Unknown friction type specified.")
     

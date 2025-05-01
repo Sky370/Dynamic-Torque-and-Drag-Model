@@ -17,8 +17,8 @@ def vis_plots(Data):
     fig = sp.make_subplots(
         rows=4,
         cols=1,
-        shared_xaxes=True,
-        vertical_spacing=0.04,
+        shared_xaxes=False,
+        vertical_spacing=0.07,
         subplot_titles=(
             "Axial Velocities (Topdrive vs. Bit)",
             "Torsional Velocities (Topdrive vs. Bit)",

@@ -51,11 +51,11 @@ def Friction(z, v, theta, omega, Forcing_F, Forcing_T, static_check_prev, consta
     # motor_elem = p[MOTOR_INDEX]
     
     radius = 0.5 * dia_pipe_equiv      # Radius in inches
-    epsilon = 1e-6                     # Small threshold for zero velocity detection
+    epsilon = 1e-5                     # Small threshold for zero velocity detection
     Friction_limit = mu_static * Normal_force
     Force_dynamic = mu_dynamic * Normal_force
     v_tan = radius * omega
-    resultant_vel = np.abs(np.sqrt(v**2 + v_tan**2)) + 1e-12  # Avoid division by zero
+    resultant_vel = np.abs(np.sqrt(v**2 + v_tan**2))
 
     mu_effective = mu_dynamic + (mu_static - mu_dynamic) * np.exp(-resultant_vel / clc.v_cs)
     coloumb_r = np.where(mu_effective * Normal_force < 1e-10, 0, mu_effective * Normal_force)
@@ -78,7 +78,7 @@ def Friction(z, v, theta, omega, Forcing_F, Forcing_T, static_check_prev, consta
     if fric_mod.lower() == 'stribeck':      
         # Update static checks with relaxed threshold
         static_check_prev[(resultant_vel < epsilon)] = 0
-        static_check_prev[(resultant_vel > epsilon)] = 1
+        static_check_prev[(resultant_vel >= epsilon)] = 1
         
         # Apply friction forces
         Friction_force = np.where(static_check_prev == 0, Friction_force_static, -coloumb_r * comp_a)
@@ -88,11 +88,8 @@ def Friction(z, v, theta, omega, Forcing_F, Forcing_T, static_check_prev, consta
         # Update static check: 0 = static, 1 = dynamic
         static_check_prev[resultant_vel < epsilon] = 0
         static_check_prev[resultant_vel >= epsilon] = 1 
-        # static_check_prev[Fd_resultant > Friction_limit] = 1 
         
         # Combine states
-        # Friction_force = np.where(static_check_prev == 0, -Friction_force_static, Force_dynamic* comp_a)
-        # Friction_torque = np.where(static_check_prev == 0, -Friction_torque_static*comp_t, Force_dynamic * comp_t * radius)
         Friction_force = np.where(static_check_prev == 0, Friction_force_static, -Force_dynamic * comp_a)
         Friction_torque = np.where(static_check_prev == 0, Friction_torque_static , -Force_dynamic * comp_t * radius)
     else:

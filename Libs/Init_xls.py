@@ -252,8 +252,8 @@ GPM2ms = lambda flowrate: flowrate * 6.309e-5
 lbs2kg = lambda lbs: lbs * 4.536e-1
 lbf2N = lambda lbf: lbf * 4.4482e+0
 rpm2rad_s = lambda rpm: rpm * 2*np.pi/60
+rad_s2rpm = lambda rad: rad * 30/np.pi
 # Unit conversion [metric-imperial]
 m2ft = lambda m: m / 0.3048
 m2in = lambda m: m / 0.0254
 N2lbf = lambda lbf: lbf / 4.44822
-

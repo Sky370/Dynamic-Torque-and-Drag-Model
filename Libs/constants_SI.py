@@ -112,7 +112,7 @@ class Calculations:
 
         # Prelim calculations:
         self.J_polar = np.pi / 32 * (self.global_od_array**4 - self.global_id_array** 4)                        # Polar moment of Inertia
-        self.J_m = self.rho * self.J_polar * self.global_length_array                                            # Mass moment of Inertia
+        self.J_m = self.rho * self.J_polar * self.global_length_array                                           # Mass moment of Inertia
         self.ka = self.E * self.A_cross / self.global_length_array                                              # Axial stiffness 
         self.kt = self.G * self.J_polar / self.global_length_array                                              # Torsional stiffness
 
@@ -204,9 +204,13 @@ class Calculations:
         # ratio_p = 0.03
         ratio_p = 0.05
         # self.K_inv = sps.diags(1 / self.global_ka_matrix.diags(), format='csr')
-        self.alpha_ax = 2 * ratio_p /np.sqrt(self.ka/ self.global_mass_array)                                       # Natural frequency for axial motion
-        self.alpha_tor = 2 * ratio_p /np.sqrt(self.kt / self.global_mass_array)                                      # Natural frequency for torsional motion
+        # self.alpha_ax = 2 * ratio_p /np.sqrt(self.ka/ self.global_mass_array)                                       # Natural frequency for axial motion
+        # self.alpha_tor = 2 * ratio_p /np.sqrt(self.kt / self.global_mass_array)                                      # Natural frequency for torsional motion
         self.alpha_ax = 0.1
+        self.alpha_tor = 0.5
+
+        # self.global_ct_matrix = 15000*self.global_length_array / self.bit_depth
+        # self.global_ca_matrix = self.global_ct_matrix*(ROP_SS*AXIAL_VEL_MULTIPLIER/(RPM_SS*np.pi*self.DIA_EQ))
         # # Calculate for first and third modes
         self.global_ca_rayleigh = self.global_ka_matrix.dot(self.alpha_ax)  # + betta*sps.diags(self.global_mass_array)  # Now includes mass-proportional term
         self.ca_visc = self.visc_p* 2*np.pi*self.global_length_array*(self.global_od_array/self.D_h)
@@ -220,14 +224,6 @@ class Calculations:
         self.global_inertia_inv_kt_matrix = self.global_inertia_inv_matrix @ self.global_kt_matrix  # Sparse Matrix
         self.global_mass_inv_ca_matrix = self.global_mass_inv_matrix @ self.global_ca_matrix        # Sparse Matrix
         self.global_inertia_inv_ct_matrix = self.global_inertia_inv_matrix @ self.global_ct_matrix  # Sparse Matrix 
-
-        # Extra
-        # self.Normal_force = lambda z: np.sqrt(
-        #     (self.global_ka_matrix.dot(z) * self.DLS_new)**2 + 
-        #     (self.bf * self.global_mass_array * self.g * np.sin(self.inc_rad))**2
-        # )
-        # self.nz = -self.B_new/np.where(self.DLS_new==0, 1e-10, self.DLS_new) * np.sin(self.inc_rad)
-        # self.bz = self.T_new/np.where(self.DLS_new==0, 1e-10, self.DLS_new) * np.sin(self.inc_rad)**2
         
         self.Normal_force = lambda z: np.sqrt(
             (self.global_ka_matrix.dot(z) * self.DLS + 

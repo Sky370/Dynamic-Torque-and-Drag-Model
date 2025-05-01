@@ -24,7 +24,9 @@ def simulation(depth, fric_mod):
 
     P['STATIC_CHECK_PREV'] = np.zeros(clc.noe)
     P['DOWNHOLE_WEIGHT'] = []
+    P['SURFACE_WEIGHT'] = []
     P['DOWNHOLE_TORQUE'] = []
+    P['SURFACE_TORQUE'] = []
     P['DOC'] = []
     P['SOLUTION_TIME'] = []
     P['THETA_PREV'] = [0.0]
@@ -32,7 +34,7 @@ def simulation(depth, fric_mod):
     P['FRICTION_FORCE_STORE'] = []
     P['FRICTION_TORQUE_STORE'] = []
     P['STATIC_CHECK_PREV_STORE'] = []
-    P['new_force'] = []
+    P['FRICTION_FORCE_TORSIONAL_STORE'] = []
 
     sol = solve_ivp(
     lambda t, x: Main_Func(t, x, clc, P, fric_mod),
@@ -42,7 +44,7 @@ def simulation(depth, fric_mod):
     atol=1e-5,     # Tighter tolerances
     rtol=1e-4,
     # t_eval=np.arange(0, 33, 0.005)
-    max_step=0.005   # Limit maximum step size
+    max_step=0.01   # Limit maximum step size
     )
 
     X_rk45 = sol.y[0::4] - np.reshape(initial_state[0::4], (clc.noe,1)) # Displacement over time

@@ -1,58 +1,94 @@
-import matplotlib.pyplot as plt
-from .Init_xls import N2lbf, m2ft
+import plotly.graph_objects as go
+import plotly.subplots as sp
+import numpy as np
+from .Init_xls import N2lbf, m2ft, rad_s2rpm
 
 def vis_plots(Data):
+    time_array = np.array(Data['TIME_ARRAY'])
+    time_array_2 = np.array(Data['SOLUTION_TIME'])
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(Data['TIME_ARRAY'], m2ft(Data['v'][-1]), label='Bit Axial Velocity')
-    plt.plot(Data['TIME_ARRAY'], m2ft(Data['v'][0]), '--', label='Topdrive Axial Velocity')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Speed (ft/s)')
-    plt.title('Comparison of surface and downhole axial velocities')
-    plt.legend()
-    plt.grid()
-    plt.show()
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(Data['TIME_ARRAY'], m2ft(Data['z'][-1]), label='Bit Axial Displacement')
-    plt.plot(Data['TIME_ARRAY'], m2ft(Data['z'][0]), '--', label='Topdrive Axial Displacement')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Distance (ft)')
-    plt.title('Comparison of surface and downhole axial displacements')
-    plt.legend()
-    plt.grid()
-    plt.show()
+    # Prepare signals
+    WEIGHT_S_lbf = N2lbf(np.array(Data['SURFACE_WEIGHT']))
+    WEIGHT_B_lbf = N2lbf(np.array(Data['DOWNHOLE_WEIGHT']))
+    TORQUE_S = np.array(Data['SURFACE_TORQUE'])
+    TORQUE_B = np.array(Data['DOWNHOLE_TORQUE'])
 
-    fig, ax1 = plt.subplots(figsize=(10, 6))
+    # Create a unified interactive dashboard
+    fig = sp.make_subplots(
+        rows=4,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.04,
+        subplot_titles=(
+            "Axial Velocities (Topdrive vs. Bit)",
+            "Torsional Velocities (Topdrive vs. Bit)",
+            "Hookload Comparison (Surface vs. Bit)",
+            "Torque Comparison (Topdrive vs. Bit)"
+        )
+    )
 
-    # Plot in klbf (original unit)
-    ax1.plot(Data['TIME_ARRAY'], N2lbf(Data['Force']), 'b', label='Hookload (lbf)')
-    ax1.set_xlabel('Time (s)')
-    ax1.set_ylabel('Surface Load (lbf)', color='k')
-    ax1.tick_params(axis='y', labelcolor='k')
+    # Row 1 - Axial Velocity
+    fig.add_trace(go.Scatter(
+        x=time_array, y=m2ft(Data['v'][0]), mode='lines',
+        name='Topdrive Axial Velocity', line=dict(dash='dash', color='blue')
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=time_array, y=m2ft(Data['v'][-1]), mode='lines',
+        name='Bit Axial Velocity', line=dict(color='firebrick')
+    ), row=1, col=1)
+    fig.update_yaxes(title_text="Velocity (ft/s)", row=1, col=1)
 
-    # Add kN axis
-    ax2 = ax1.twinx()
-    ax2.plot(Data['TIME_ARRAY'], Data['Force'], 'r', linestyle=':', label='Hookload (N)')
-    ax2.set_ylabel('Surface Load (N)', color='k')
-    ax2.tick_params(axis='y', labelcolor='k')
+    # Row 2 - Torsional Velocity
+    fig.add_trace(go.Scatter(
+        x=time_array, y=rad_s2rpm(Data['omega'][0]), mode='lines',
+        name='Topdrive RPM', line=dict(dash='dash', color='teal')
+    ), row=2, col=1)
+    fig.add_trace(go.Scatter(
+        x=time_array, y=rad_s2rpm(Data['omega'][-1]), mode='lines',
+        name='Bit RPM', line=dict(color='mediumpurple')
+    ), row=2, col=1)
+    fig.update_yaxes(title_text="RPM", row=2, col=1)
 
-    # Combine legends
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
+    # Row 3 - Hookload
+    fig.add_trace(go.Scatter(
+        x=time_array_2, y=WEIGHT_S_lbf,
+        name="Hookload (lbf)", line=dict(color='royalblue')
+    ), row=3, col=1)
+    fig.add_trace(go.Scatter(
+        x=time_array_2, y=WEIGHT_B_lbf,
+        name="WOB (lbf)", line=dict(color='darkorange')
+    ), row=3, col=1)
+    fig.update_yaxes(title_text="Load (lbf)", row=3, col=1)
 
-    plt.title('Surface Load (Hookload)')
-    plt.grid()
-    plt.show()
+    # Row 4 - Torque
+    fig.add_trace(go.Scatter(
+        x=time_array_2, y=TORQUE_S,
+        name="Topdrive Torque (Nm)", line=dict(color='crimson')
+    ), row=4, col=1)
+    fig.add_trace(go.Scatter(
+        x=time_array_2, y=TORQUE_B,
+        name="Bit Torque (Nm)", line=dict(color='seagreen')
+    ), row=4, col=1)
+    fig.update_yaxes(title_text="Torque (Nm)", row=4, col=1)
 
-    # # Export if requested
-    # if html_out:
-    #     fig.write_html(html_out)
-    # if image_out:
-    #     fig.write_image(image_out, scale=image_scale)
+    # Shared X-axis
+    fig.update_xaxes(title_text="Time (s)", row=4, col=1)
 
-    # if show:
-    #     fig.show()
+    # Layout Styling
+    fig.update_layout(
+        title_text="\U0001F4C8 Drilling Dynamics Dashboard",
+        height=1100,
+        width=1000,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.12,
+            xanchor="center",
+            x=0.5
+        ),
+        hovermode="x unified",
+        template="plotly_white"
+    )
 
+    fig.show()
     return

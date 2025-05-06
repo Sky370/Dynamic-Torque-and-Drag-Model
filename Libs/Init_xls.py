@@ -254,6 +254,7 @@ lbf2N = lambda lbf: lbf * 4.4482e+0
 rpm2rad_s = lambda rpm: rpm * 2*np.pi/60
 rad_s2rpm = lambda rad: rad * 30/np.pi
 # Unit conversion [metric-imperial]
-m2ft = lambda m: m / 0.3048
-m2in = lambda m: m / 0.0254
+m2ft = lambda m: m / 3.048e-1
+m2in = lambda m: m / 2.54e-2
 N2lbf = lambda lbf: lbf / 4.44822
+Nm2lbfft = lambda Nm: Nm * 7.3756215e-1

@@ -1,7 +1,7 @@
 import plotly.graph_objects as go
 import plotly.subplots as sp
 import numpy as np
-from .Init_xls import N2lbf, m2ft, rad_s2rpm
+from .Init_xls import Nm2lbfft, N2lbf, m2ft, rad_s2rpm
 
 def vis_plots(Data):
     time_array = np.array(Data['TIME_ARRAY'])
@@ -10,8 +10,8 @@ def vis_plots(Data):
     # Prepare signals
     WEIGHT_S_lbf = N2lbf(np.array(Data['SURFACE_WEIGHT']))
     WEIGHT_B_lbf = N2lbf(np.array(Data['DOWNHOLE_WEIGHT']))
-    TORQUE_S = np.array(Data['SURFACE_TORQUE'])
-    TORQUE_B = np.array(Data['DOWNHOLE_TORQUE'])
+    TORQUE_S = Nm2lbfft(np.array(Data['SURFACE_TORQUE']))
+    TORQUE_B = Nm2lbfft(np.array(Data['DOWNHOLE_TORQUE']))
 
     # Create a unified interactive dashboard
     fig = sp.make_subplots(
@@ -63,13 +63,13 @@ def vis_plots(Data):
     # Row 4 - Torque
     fig.add_trace(go.Scatter(
         x=time_array_2, y=TORQUE_S,
-        name="Topdrive Torque (Nm)", line=dict(color='crimson')
+        name="Topdrive Torque (lbf-ft)", line=dict(color='crimson')
     ), row=4, col=1)
     fig.add_trace(go.Scatter(
         x=time_array_2, y=TORQUE_B,
-        name="Bit Torque (Nm)", line=dict(color='seagreen')
+        name="Bit Torque (lbf-ft)", line=dict(color='seagreen')
     ), row=4, col=1)
-    fig.update_yaxes(title_text="Torque (Nm)", row=4, col=1)
+    fig.update_yaxes(title_text="Torque (lbf-ft)", row=4, col=1)
 
     # Shared X-axis
     fig.update_xaxes(title_text="Time (s)", row=4, col=1)

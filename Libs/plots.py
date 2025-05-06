@@ -1,9 +1,10 @@
 import plotly.graph_objects as go
 import plotly.subplots as sp
 import numpy as np
+import os
 from .Init_xls import Nm2lbfft, N2lbf, m2ft, rad_s2rpm
 
-def vis_plots(Data):
+def vis_plots(Data, save_path="drilling_dashboard.html"):
     time_array = np.array(Data['TIME_ARRAY'])
     time_array_2 = np.array(Data['SOLUTION_TIME'])
 
@@ -77,7 +78,7 @@ def vis_plots(Data):
     # Layout Styling
     fig.update_layout(
         title_text="\U0001F4C8 Drilling Dynamics Dashboard",
-        height=1100,
+        height=1000,
         width=1000,
         legend=dict(
             orientation="h",
@@ -91,4 +92,9 @@ def vis_plots(Data):
     )
 
     fig.show()
+
+    # Export to HTML file
+    if save_path:
+        fig.write_html(save_path)
+        print(f"Dashboard saved to: {os.path.abspath(save_path)}")
     return
